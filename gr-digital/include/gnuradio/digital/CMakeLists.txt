@@ -114,6 +114,14 @@ install(FILES
     simple_framer.h
     simple_framer_sync.h
     header_payload_demux.h
+    digital_ofdm_cyclic_prefixer_80211n.h
+    digital_ofdm_frame_acquisition_80211n.h
+    digital_ofdm_frame_acquisition_multiplexing_80211n.h
+    digital_ofdm_frame_sink_noheader_80211n.h
+    digital_ofdm_insert_pilot_80211n.h
+    digital_ofdm_insert_preamble.h
+    digital_ofdm_mapper_bcv.h
+    digital_ofdm_sampler_snroncp.h
     DESTINATION ${GR_INCLUDE_DIR}/gnuradio/digital
     COMPONENT "digital_devel"
 )
