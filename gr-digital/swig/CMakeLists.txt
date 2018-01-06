@@ -64,6 +64,14 @@ install(
     constellation.i
     ofdm_equalizer.i
     packet_header.i
+    digital_ofdm_cyclic_prefixer_80211n.i
+    digital_ofdm_frame_acquisition_80211n.i
+    digital_ofdm_frame_acquisition_multiplexing_80211n.i
+    digital_ofdm_frame_sink_noheader_80211n.i
+    digital_ofdm_insert_pilot_80211n.i
+    digital_ofdm_insert_preamble.i
+    digital_ofdm_mapper_bcv.i
+    digital_ofdm_sampler_snroncp.i
     ${CMAKE_CURRENT_BINARY_DIR}/digital_swig_doc.i
     DESTINATION ${GR_INCLUDE_DIR}/gnuradio/swig
     COMPONENT "digital_swig"
