@@ -54,6 +54,12 @@ from soft_dec_lut_gen import *
 from psk_constellations import *
 from qam_constellations import *
 from constellation_map_generator import *
+from ofdm_fec_80211n import *
+from ofdm_fec_packet_utils import *
+from ofdm_receiver_fec_80211n import *
+from ofdm_receiver_fec_multiplexing_80211n import *
+from ofdm_sync_mimo import *
+from ofdm_sync_pn3 import *
 
 import packet_utils
 import ofdm_packet_utils
