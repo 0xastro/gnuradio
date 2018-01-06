@@ -50,6 +50,12 @@ GR_PYTHON_INSTALL(
     qam_constellations.py
     qpsk.py
     soft_dec_lut_gen.py
+    ofdm_fec_80211n.py
+    ofdm_fec_packet_utils.py
+    ofdm_receiver_fec_80211n.py
+    ofdm_receiver_fec_multiplexing_80211n.py
+    ofdm_sync_mimo.py
+    ofdm_sync_pn3.py
     DESTINATION ${GR_PYTHON_DIR}/gnuradio/digital
     COMPONENT "digital_python"
 )
