@@ -128,6 +128,14 @@ list(APPEND digital_sources
     scrambler_bb_impl.cc
     simple_correlator_impl.cc
     simple_framer_impl.cc
+    digital_ofdm_cyclic_prefixer_80211n.cc
+    digital_ofdm_frame_acquisition_80211n.cc
+    digital_ofdm_frame_acquisition_multiplexing_80211n.cc
+    digital_ofdm_frame_sink_noheader_80211n.cc
+    digital_ofdm_insert_pilot_80211n.cc
+    digital_ofdm_insert_preamble.cc
+    digital_ofdm_mapper_bcv.cc
+    digital_ofdm_sampler_snroncp.cc
 )
 
 #Add Windows DLL resource file if using MSVC
