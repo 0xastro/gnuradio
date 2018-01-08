@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2002,2012 Free Software Foundation, Inc.
+ * Copyright 2002 Free Software Foundation, Inc.
  *
  * This file is part of GNU Radio
  *
@@ -27,123 +27,216 @@
 #include <fstream>
 #include <stdexcept>
 #include <cmath>
-#include <gnuradio/trellis/quicksort_index.h>
-#include <gnuradio/trellis/interleaver.h>
+#include "quicksort_index.h"
+#include "interleaver.h"
 
-namespace gr {
-  namespace trellis {
 
-    interleaver::interleaver()
-    {
-      d_K=0;
-      d_INTER.resize(0);
-      d_DEINTER.resize(0);
+
+
+interleaver::interleaver()
+{
+  d_K=0;
+  d_INTER.resize(0);
+  d_DEINTER.resize(0);
+}
+
+interleaver::interleaver(const interleaver &INTERLEAVER)
+{
+  d_K=INTERLEAVER.K();
+  d_INTER=INTERLEAVER.INTER();
+  d_DEINTER=INTERLEAVER.DEINTER();
+}
+
+interleaver::interleaver(int K, const std::vector<int> &INTER)
+{
+  d_K=K;
+  d_INTER=INTER;
+  d_DEINTER.resize(d_K);
+
+  // generate DEINTER table
+  for(int i=0;i<d_K;i++) {
+    d_DEINTER[d_INTER[i]]=i;
+  }
+}
+
+//######################################################################
+//# Read an INTERLEAVER specification from a file.
+//# Format (hopefully will become more flexible in the future...):
+//# K
+//# blank line
+//# list of space separated K integers from 0 to K-1 in appropriate order
+//# optional comments
+//######################################################################
+interleaver::interleaver(const char *name)
+{
+  FILE *interleaverfile;
+
+  if((interleaverfile=fopen(name,"r"))==NULL)
+    throw std::runtime_error ("file open error in interleaver()");
+    //printf("file open error in interleaver()\n");
+
+  if(fscanf(interleaverfile,"%d\n",&d_K) == EOF) {
+    if(ferror(interleaverfile) != 0)
+      throw std::runtime_error ("interleaver::interleaver(const char *name): file read error\n");
+  }
+
+  d_INTER.resize(d_K);
+  d_DEINTER.resize(d_K);
+
+  for(int i=0;i<d_K;i++) {
+    if(fscanf(interleaverfile,"%d",&(d_INTER[i])) == EOF) {
+      if(ferror(interleaverfile) != 0)
+	throw std::runtime_error ("interleaver::interleaver(const char *name): file read error\n");
     }
+  }
 
-    interleaver::interleaver(const interleaver &INTERLEAVER)
-    {
-      d_K=INTERLEAVER.K();
-      d_INTER=INTERLEAVER.INTER();
-      d_DEINTER=INTERLEAVER.DEINTER();
-    }
+  // generate DEINTER table
+  for(int i=0;i<d_K;i++) {
+    d_DEINTER[d_INTER[i]]=i;
+  }
+}
 
-    interleaver::interleaver(int K, const std::vector<int> &INTER)
-    {
-      d_K=K;
-      d_INTER=INTER;
-      d_DEINTER.resize(d_K);
+//######################################################################
+//# Generate a random interleaver
+//######################################################################
+interleaver::interleaver(int K, int seed)
+{
+  d_K=K;
+  d_INTER.resize(d_K);
+  d_DEINTER.resize(d_K);
 
-      // generate DEINTER table
-      for(int i=0;i<d_K;i++) {
-	d_DEINTER[d_INTER[i]]=i;
-      }
-    }
+  
+  if(seed>=0) srand((unsigned int)seed);
+  std::vector<int> tmp(d_K);
+  for(int i=0;i<d_K;i++) {
+    d_INTER[i]=i;
+    tmp[i] = rand();
+  }
+  quicksort_index <int> (tmp,d_INTER,0,d_K-1);
 
-    //######################################################################
-    //# Read an INTERLEAVER specification from a file.
-    //# Format (hopefully will become more flexible in the future...):
-    //# K
-    //# blank line
-    //# list of space separated K integers from 0 to K-1 in appropriate order
-    //# optional comments
-    //######################################################################
-    interleaver::interleaver(const char *name)
-    {
-      FILE *interleaverfile;
+  // generate DEINTER table
+  for(int i=0;i<d_K;i++) {
+    d_DEINTER[d_INTER[i]]=i;
+  }
+}
 
-      if((interleaverfile=fopen(name,"r")) == NULL)
-	throw std::runtime_error ("file open error in interleaver()");
-      //printf("file open error in interleaver()\n");
 
-      if(fscanf(interleaverfile,"%d\n",&d_K) == EOF) {
-	if(ferror(interleaverfile) != 0)
-	  throw std::runtime_error ("interleaver::interleaver(const char *name): file read error\n");
-      }
+//######################################################################
+//# Generate OUR random interleaver
+//######################################################################
+interleaver::interleaver(int K, int seed,int fake)
+{
+  
+//   printf("MY INTERLEAVER");
+  d_K=K;
+  d_INTER.resize(d_K);
+  d_DEINTER.resize(d_K);
 
-      d_INTER.resize(d_K);
-      d_DEINTER.resize(d_K);
+  long int index[d_K];
+  long int input[d_K];
+  int i;
+  long int position;
+  
+  for(i=0;i<d_K;i++)
+    input[i]=i;
 
-      for(int i=0;i<d_K;i++) {
-	if(fscanf(interleaverfile,"%d",&(d_INTER[i])) == EOF) {
-	  if(ferror(interleaverfile) != 0)
-	    throw std::runtime_error("interleaver::interleaver(const char *name): file read error\n");
-	}
-      }
+  for(i=0;i<d_K;i++)
+    index[i]=i;
 
-      // generate DEINTER table
-      for(int i=0;i<d_K;i++) {
-	d_DEINTER[d_INTER[i]]=i;
-      }
+//   printf("d_K = %d\n",d_K);
+  //if(seed<0) seed=(-seed);
+  for(i=0;i<d_K;i++) {
+//     d_INTER[i]=i;
+    seed = rand_gen(seed);
+   // tmp[i] =  (seed%K);
+    position=seed%(d_K-i);
+    d_INTER[i]=input[index[position]];
+    for(int m=position;m<(d_K-1);m++)
+      index[m]=index[m+1];
+  }
+//   quicksort_index <int> (tmp,d_INTER,0,d_K-1);
 
-      fclose(interleaverfile);
-    }
+  // generate DEINTER table
+//   printf("Inter/Deinter begin\n");
+  for(int i=0;i<d_K;i++) {
+    d_DEINTER[d_INTER[i]]=i;
+//      printf("%ld ",d_INTER[i]);
+  }
+//    printf("\nInter/Deinter end\n");
+}
 
-    //######################################################################
-    //# Generate a random interleaver
-    //######################################################################
-    interleaver::interleaver(int K, int seed)
-    {
-      d_K=K;
-      d_INTER.resize(d_K);
-      d_DEINTER.resize(d_K);
+long int interleaver::rand_gen(long int seed)
+{       
+if(seed<0) seed=-seed;
 
-      if(seed>=0)
-	srand((unsigned int)seed);
-      std::vector<int> tmp(d_K);
-      for(int i=0;i<d_K;i++) {
-	d_INTER[i]=i;
-	tmp[i] = rand();
-      }
-      quicksort_index <int> (tmp,d_INTER,0,d_K-1);
+seed = seed * 214013+2531011;
 
-      // generate DEINTER table
-      for(int i=0;i<d_K;i++) {
-	d_DEINTER[d_INTER[i]]=i;
-      }
-    }
+return(long int)(seed % 2147483648); 
 
-    //######################################################################
-    //# Write an INTERLEAVER specification to a file.
-    //# Format
-    //# K
-    //# blank line
-    //# list of space separated K integers from 0 to K-1 in appropriate order
-    //# optional comments
-    //######################################################################
-    void
-    interleaver::write_interleaver_txt(std::string filename)
-    {
-      std::ofstream interleaver_fname (filename.c_str());
-      if(!interleaver_fname) {
-	std::cout << "file not found " << std::endl ; exit(-1);
-      }
-      interleaver_fname << d_K << std::endl;
-      interleaver_fname << std::endl;
-      for(int i=0;i<d_K;i++)
-	interleaver_fname << d_INTER[i] << ' ';
-      interleaver_fname << std::endl;
-      interleaver_fname.close();
-    }
+}
+// interleaver::interleaver(int K, int seed,int fake)
+// {
+//   
+// //   printf("MY INTERLEAVER\n");
+//   d_K=K;
+//   d_INTER.resize(d_K);
+//   d_DEINTER.resize(d_K);
+// 
+//   
+//   if(seed<0) seed=(-seed);
+//   std::vector<int> tmp(d_K);
+//   for(int i=0;i<d_K;i++) {
+//     d_INTER[i]=i;
+//     seed = rand_gen(seed);
+//     tmp[i] =  (seed%K);
+//   }
+//   quicksort_index <int> (tmp,d_INTER,0,d_K-1);
+// 
+//   // generate DEINTER table
+//   for(int i=0;i<d_K;i++) {
+//     d_DEINTER[d_INTER[i]]=i;
+//   }
+//   
+// //   printf("INTER TABLE:\n");
+// //   for(int i=0;i<d_K;i++) printf("d_INTER[%d]=%d ",i,d_INTER[i]);
+// //   printf("\n");
+// //   
+// //   printf("DEINTER TABLE:\n");
+// //   for(int i=0;i<d_K;i++) printf("d_DEINTER[%d]=%d ",i,d_DEINTER[i]);
+// //   printf("\n");
+// 
+//   
+//   
+// }
+// 
+// int interleaver::rand_gen(int seed)
+// {       
+// 
+// seed = seed * 1103515245 +12345;
+// 
+// return(unsigned int)(seed / 65536) % 32768; 
+// 
+// }
 
-  } /* namespace trellis */
-} /* namespace gr */
+
+
+
+//######################################################################
+//# Write an INTERLEAVER specification to a file.
+//# Format
+//# K
+//# blank line
+//# list of space separated K integers from 0 to K-1 in appropriate order
+//# optional comments
+//######################################################################
+void interleaver::write_interleaver_txt(std::string filename)
+{
+   std::ofstream interleaver_fname (filename.c_str());
+   if (!interleaver_fname) {std::cout << "file not found " << std::endl ; exit(-1);}
+   interleaver_fname << d_K << std::endl;
+   interleaver_fname << std::endl;
+   for(int i=0;i<d_K;i++)
+     interleaver_fname << d_INTER[i] << ' ';
+   interleaver_fname << std::endl;
+   interleaver_fname.close();
+}
